@@ -138,11 +138,10 @@ def main():
             # Demo Duration
             demo_duration = st.selectbox(
                 "Demo Duration",
-                options=[1],
-                index=0,  # Default to 1 minute to conserve Tavus credits
-                help="Set to 1 minute to conserve Tavus API credits"
+                options=[1,3,5,7,10],
+                index=0,
             )
-            st.info("⚠️ Limited to 1 minute to conserve Tavus API credits")
+
         
         with col2:
             st.markdown('<h3 class="sub-header">🎭 Presentation Details</h3>', unsafe_allow_html=True)
@@ -854,11 +853,6 @@ def main():
             2. Wait for the Tavus API to create your avatar
             3. The avatar will appear here automatically
             """)
-
-    # Demo settings
-    st.subheader("🎬 Demo Settings")
-    demo_duration = st.slider("Demo Duration (minutes)", 1, 1, 1)
-    st.info("⚠️ Limited to 1 minute to conserve Tavus API credits")
 
 if __name__ == "__main__":
     main() 
