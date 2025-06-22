@@ -73,7 +73,25 @@ class LlamaClient:
         4. Include specific demo scenarios with clear instructions
         5. Provide timing and flow recommendations
         
-        Structure the presentation with clear sections, timing, and actionable demo instructions.
+        IMPORTANT: Return your response in valid JSON format with this structure:
+        {
+            "title": "Presentation Title",
+            "sections": [
+                {
+                    "title": "Section Title",
+                    "duration": 60,
+                    "content": "Detailed content for this section...",
+                    "demo_trigger": "trigger_name_or_null",
+                    "visual_cue": "visual_element_or_null"
+                }
+            ],
+            "total_duration": 300,
+            "key_points": ["Point 1", "Point 2", "Point 3"],
+            "demo_scenarios": ["Scenario 1", "Scenario 2"],
+            "visual_elements": ["Visual 1", "Visual 2"]
+        }
+        
+        Make the content specific to the provided codebase and requirements. Use the actual feature names, architecture details, and requirements from the context.
         """)
         
         return self._parse_presentation_script(response)
@@ -151,7 +169,7 @@ class LlamaClient:
         """Build comprehensive context for presentation generation"""
         
         return f"""
-        Generate a presentation script based on the following context:
+        Generate a compelling presentation script based on the following detailed context:
         
         === USER PROMPT ===
         {user_prompt}
@@ -178,12 +196,16 @@ class LlamaClient:
         Requirements Details:
         {json.dumps(document_context.requirements, indent=2)}
         
-        Create a compelling presentation that:
-        1. Addresses the user's specific prompt and requirements
-        2. Shows how the codebase implements the documented requirements
-        3. Demonstrates key features with clear demo scenarios
-        4. Is tailored to the specified audience and duration
-        5. Includes timing, flow, and visual recommendations
+        INSTRUCTIONS:
+        1. Use the ACTUAL feature names, architecture, and requirements from the context above
+        2. Create sections that specifically address the documented requirements
+        3. Reference the real codebase features and components
+        4. Make demo scenarios based on the actual user flows and features
+        5. Tailor the content to the specified audience and purpose
+        6. Include specific timing that fits within the {request.duration} minute duration
+        7. Create visual elements that would help explain the actual architecture and features
+        
+        Return your response in valid JSON format as specified in the system prompt.
         """
     
     def _build_agent_planning_context(
@@ -227,31 +249,109 @@ class LlamaClient:
     def _parse_presentation_script(self, response: str) -> Dict[str, Any]:
         """Parse Llama response into structured presentation script"""
         
-        # For now, return a structured format
-        # In production, you'd parse the response more intelligently
-        return {
-            "title": "Generated Presentation",
-            "sections": [
-                {
-                    "title": "Introduction",
-                    "duration": 60,
-                    "content": "Introduction content",
-                    "demo_trigger": None,
-                    "visual_cue": None
-                },
-                {
-                    "title": "Key Features Demo",
-                    "duration": 180,
-                    "content": "Feature demonstration content",
-                    "demo_trigger": "start_feature_demo",
-                    "visual_cue": "show_architecture_diagram"
-                }
-            ],
-            "total_duration": 240,
-            "key_points": ["Point 1", "Point 2", "Point 3"],
-            "demo_scenarios": ["Scenario 1", "Scenario 2"],
-            "visual_elements": ["Diagram 1", "Chart 1"]
-        }
+        try:
+            # First, try to extract JSON from the response
+            import re
+            
+            # Look for JSON in the response
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                parsed_response = json.loads(json_str)
+                return parsed_response
+            
+            # If no JSON found, try to parse the response as markdown or text
+            # and convert it to a structured format
+            lines = response.strip().split('\n')
+            sections = []
+            current_section = None
+            key_points = []
+            demo_scenarios = []
+            visual_elements = []
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # Look for section headers
+                if line.startswith('#') or line.upper() in ['INTRODUCTION', 'OVERVIEW', 'FEATURES', 'DEMO', 'CONCLUSION']:
+                    if current_section:
+                        sections.append(current_section)
+                    
+                    current_section = {
+                        "title": line.lstrip('#').strip(),
+                        "duration": 60,  # Default duration
+                        "content": "",
+                        "demo_trigger": None,
+                        "visual_cue": None
+                    }
+                
+                # Look for key points
+                elif line.startswith('-') or line.startswith('*'):
+                    key_points.append(line.lstrip('-* ').strip())
+                
+                # Look for demo scenarios
+                elif 'demo' in line.lower() or 'scenario' in line.lower():
+                    demo_scenarios.append(line.strip())
+                
+                # Look for visual elements
+                elif any(word in line.lower() for word in ['diagram', 'chart', 'visual', 'image']):
+                    visual_elements.append(line.strip())
+                
+                # Add content to current section
+                elif current_section:
+                    current_section["content"] += line + "\n"
+            
+            # Add the last section
+            if current_section:
+                sections.append(current_section)
+            
+            # If no sections found, create a default structure
+            if not sections:
+                sections = [
+                    {
+                        "title": "Introduction",
+                        "duration": 60,
+                        "content": response[:500] + "..." if len(response) > 500 else response,
+                        "demo_trigger": None,
+                        "visual_cue": None
+                    }
+                ]
+            
+            # Calculate total duration
+            total_duration = sum(section.get("duration", 60) for section in sections)
+            
+            return {
+                "title": "Generated Presentation",
+                "sections": sections,
+                "total_duration": total_duration,
+                "key_points": key_points if key_points else ["Key point 1", "Key point 2", "Key point 3"],
+                "demo_scenarios": demo_scenarios if demo_scenarios else ["Demo scenario 1", "Demo scenario 2"],
+                "visual_elements": visual_elements if visual_elements else ["Visual element 1", "Visual element 2"],
+                "raw_response": response  # Include the raw response for debugging
+            }
+            
+        except Exception as e:
+            # Fallback to structured format with raw response
+            return {
+                "title": "Generated Presentation",
+                "sections": [
+                    {
+                        "title": "Presentation Content",
+                        "duration": 300,
+                        "content": response,
+                        "demo_trigger": None,
+                        "visual_cue": None
+                    }
+                ],
+                "total_duration": 300,
+                "key_points": ["Content generated successfully"],
+                "demo_scenarios": ["Demo based on requirements"],
+                "visual_elements": ["Visuals to be generated"],
+                "raw_response": response,
+                "parse_error": str(e)
+            }
     
     def _parse_agent_execution_plan(self, response: str) -> Dict[str, Any]:
         """Parse Llama response into structured agent execution plan"""

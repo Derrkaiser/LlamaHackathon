@@ -219,10 +219,17 @@ class DocumentParser:
         )
     
     def _clean_text(self, text: str) -> str:
-        """Clean and normalize text"""
-        # Remove excessive whitespace
-        text = " ".join(text.split())
+        """Clean and normalize text while preserving line breaks"""
+        # Remove excessive whitespace but preserve line breaks
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            if line:  # Only keep non-empty lines
+                cleaned_lines.append(line)
+        
         # Remove common PDF artifacts
+        text = '\n'.join(cleaned_lines)
         text = text.replace("", "")  # Form feed
         return text.strip()
     
@@ -230,11 +237,24 @@ class DocumentParser:
         """Extract title from text"""
         lines = text.split('\n')
         
-        # Look for title patterns
+        # Look for "REQUIREMENT X:" pattern
+        for line in lines[:5]:  # Check first 5 lines
+            line = line.strip()
+            if line.upper().startswith('REQUIREMENT') and ':' in line:
+                # Extract the title part after "REQUIREMENT X:"
+                parts = line.split(':', 1)
+                if len(parts) > 1:
+                    title = parts[1].strip()
+                    if title:
+                        return title
+        
+        # Look for title patterns (first meaningful line that's not too long)
         for line in lines[:3]:  # Check first 3 lines
             line = line.strip()
             if line and len(line) < 100 and not line.startswith(('•', '-', '1.', '2.')):
-                return line
+                # Make sure it's not a section header
+                if not any(phrase in line.lower() for phrase in ['priority:', 'description:', 'features:', 'acceptance criteria:', 'technical notes:']):
+                    return line
         
         # Fallback: use first meaningful line
         for line in lines:
@@ -248,14 +268,31 @@ class DocumentParser:
         """Extract features from text"""
         features = []
         
-        # Look for bullet points and numbered lists
+        # Look for "Features:" section
         lines = text.split('\n')
+        in_features_section = False
+        
         for line in lines:
             line = line.strip()
-            if line.startswith(('•', '-', '*', '1.', '2.', '3.')):
-                feature = line.lstrip('•-*1234567890. ').strip()
-                if feature and len(feature) > 5:
-                    features.append(feature)
+            
+            # Check for Features section start
+            if 'features:' in line.lower():
+                in_features_section = True
+                continue
+            
+            # Check for section end (next major section)
+            if in_features_section and any(phrase in line.lower() for phrase in ['acceptance criteria:', 'technical notes:', 'description:']):
+                break
+            
+            # Extract features with bullet points
+            if in_features_section and line:
+                if line.startswith(('•', '-', '*', '1.', '2.', '3.')):
+                    feature = line.lstrip('•-*1234567890. ').strip()
+                    if feature and len(feature) > 5:
+                        features.append(feature)
+                elif line and len(line) > 10 and not line.lower().startswith(('priority:', 'description:')):
+                    # Handle features without bullet points
+                    features.append(line)
         
         return features
     
@@ -263,6 +300,15 @@ class DocumentParser:
         """Extract priority from text"""
         text_lower = text.lower()
         
+        # Look for "Priority: High/Medium/Low" pattern
+        if 'priority: high' in text_lower:
+            return "High"
+        elif 'priority: medium' in text_lower:
+            return "Medium"
+        elif 'priority: low' in text_lower:
+            return "Low"
+        
+        # Fallback to keyword search
         if any(word in text_lower for word in ['high priority', 'critical', 'urgent']):
             return "High"
         elif any(word in text_lower for word in ['medium priority', 'normal']):
@@ -276,37 +322,54 @@ class DocumentParser:
         """Extract acceptance criteria from text"""
         criteria = []
         
-        # Look for acceptance criteria patterns
+        # Look for "Acceptance Criteria:" section
         lines = text.split('\n')
         in_criteria_section = False
         
         for line in lines:
             line = line.strip()
-            if any(phrase in line.lower() for phrase in ['acceptance criteria', 'acceptance test', 'criteria:']):
+            
+            # Check for Acceptance Criteria section start
+            if 'acceptance criteria:' in line.lower():
                 in_criteria_section = True
                 continue
             
+            # Check for section end (next major section)
+            if in_criteria_section and any(phrase in line.lower() for phrase in ['technical notes:', 'features:', 'description:']):
+                break
+            
+            # Extract criteria with bullet points
             if in_criteria_section and line:
-                if line.startswith(('•', '-', '*', '1.', '2.')):
-                    criteria.append(line.lstrip('•-*1234567890. ').strip())
-                elif line and len(line) > 10:
+                if line.startswith(('•', '-', '*', '1.', '2.', '3.')):
+                    criterion = line.lstrip('•-*1234567890. ').strip()
+                    if criterion and len(criterion) > 5:
+                        criteria.append(criterion)
+                elif line and len(line) > 10 and not line.lower().startswith(('priority:', 'description:')):
+                    # Handle criteria without bullet points
                     criteria.append(line)
         
         return criteria
     
     def _extract_technical_notes(self, text: str) -> str:
         """Extract technical notes from text"""
-        # Look for technical sections
+        # Look for "Technical Notes:" section
         lines = text.split('\n')
         technical_lines = []
         in_technical_section = False
         
         for line in lines:
             line = line.strip()
-            if any(phrase in line.lower() for phrase in ['technical', 'implementation', 'notes:', 'tech:']):
+            
+            # Check for Technical Notes section start
+            if 'technical notes:' in line.lower():
                 in_technical_section = True
                 continue
             
+            # Check for section end (next major section)
+            if in_technical_section and any(phrase in line.lower() for phrase in ['acceptance criteria:', 'features:', 'description:']):
+                break
+            
+            # Extract technical notes
             if in_technical_section and line:
                 technical_lines.append(line)
         
@@ -314,7 +377,31 @@ class DocumentParser:
     
     def _generate_description(self, text: str, title: str, features: List[str], criteria: List[str]) -> str:
         """Generate description from remaining text"""
-        # Remove already extracted parts
+        # Look for "Description:" section specifically
+        lines = text.split('\n')
+        description_lines = []
+        in_description_section = False
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Check for Description section start
+            if 'description:' in line.lower():
+                in_description_section = True
+                continue
+            
+            # Check for section end (next major section)
+            if in_description_section and any(phrase in line.lower() for phrase in ['features:', 'acceptance criteria:', 'technical notes:']):
+                break
+            
+            # Extract description
+            if in_description_section and line:
+                description_lines.append(line)
+        
+        if description_lines:
+            return " ".join(description_lines)
+        
+        # Fallback: extract remaining text
         description = text
         
         # Remove title
@@ -333,7 +420,7 @@ class DocumentParser:
         
         # Clean up
         description = " ".join(description.split())
-        return description[:500]  # Limit length
+        return description[:800]  # Increased limit for better descriptions
     
     def _is_new_section(self, paragraph) -> bool:
         """Check if paragraph starts a new section"""

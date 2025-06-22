@@ -1,0 +1,76 @@
+
+        <div id="tavus-player-container" style="width: 100%; height: 500px; border: 2px solid #667eea; border-radius: 10px; overflow: hidden; margin: 20px 0;">
+            <iframe 
+                src="https://app.tavus.com/embed/sample_presentation"
+                width="100%" 
+                height="100%" 
+                frameborder="0"
+                allowfullscreen>
+            </iframe>
+        </div>
+        
+        <div id="presentation-controls" style="margin: 20px 0;">
+            <button onclick="startPresentation()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                🎬 Start Presentation
+            </button>
+            <button onclick="pausePresentation()" style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                ⏸️ Pause
+            </button>
+            <button onclick="stopPresentation()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                ⏹️ Stop
+            </button>
+        </div>
+        
+        <div id="presentation-status" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h4>📊 Presentation Status</h4>
+            <p><strong>Total Segments:</strong> 4</p>
+            <p><strong>Total Duration:</strong> 33.6 seconds</p>
+            <p><strong>Natural Pauses:</strong> 3</p>
+        </div>
+        
+        <script>
+            // Presentation control functions
+            function startPresentation() {
+                console.log('🎬 Starting avatar presentation...');
+                document.getElementById('presentation-status').innerHTML += '<p style="color: green;">✅ Presentation started</p>';
+                
+                // Simulate segment progression
+                const segments = [{"id": "segment_1", "text": "Hello! Welcome to our demo. Today I'm going to show you something amazing.\n        \n        Let me start by explaining what we've built.", "duration": 8.4, "gesture": "welcome_gesture", "pause_after": true}, {"id": "segment_2", "text": "This is a revolutionary platform that changes everything.\n        \n        Now, let me demonstrate the key features.", "duration": 6.0, "gesture": "emphasize_gesture", "pause_after": false}, {"id": "segment_3", "text": "As you can see, the interface is clean and intuitive.\n        \n        Here's how it works. Users simply click here, and everything happens automatically.\n        \n        The results are incredible.", "duration": 10.4, "gesture": "point_at_screen", "pause_after": true}, {"id": "segment_4", "text": "Performance is 10x faster than traditional solutions.\n        \n        In conclusion, this platform will transform how you work. Thank you for your time!\n        .", "duration": 8.8, "gesture": "welcome_gesture", "pause_after": true}];
+                let currentSegment = 0;
+                
+                const progressInterval = setInterval(() => {
+                    if (currentSegment < segments.length) {
+                        const segment = segments[currentSegment];
+                        console.log(`Segment ${currentSegment + 1}: ${segment.text.substring(0, 50)}...`);
+                        
+                        // Update status
+                        document.getElementById('presentation-status').innerHTML += 
+                            `<p style="color: #667eea;">🎭 Segment ${currentSegment + 1}: ${segment.text.substring(0, 50)}...</p>`;
+                        
+                        // Add pause indicator if needed
+                        if (segment.pause_after) {
+                            setTimeout(() => {
+                                document.getElementById('presentation-status').innerHTML += 
+                                    '<p style="color: #f39c12;">⏸️ Natural pause...</p>';
+                            }, segment.duration * 1000);
+                        }
+                        
+                        currentSegment++;
+                    } else {
+                        clearInterval(progressInterval);
+                        document.getElementById('presentation-status').innerHTML += '<p style="color: green;">🎉 Presentation completed!</p>';
+                    }
+                }, 3000); // Update every 3 seconds for demo
+            }
+            
+            function pausePresentation() {
+                console.log('⏸️ Pausing presentation...');
+                document.getElementById('presentation-status').innerHTML += '<p style="color: #f39c12;">⏸️ Presentation paused</p>';
+            }
+            
+            function stopPresentation() {
+                console.log('⏹️ Stopping presentation...');
+                document.getElementById('presentation-status').innerHTML += '<p style="color: #e74c3c;">⏹️ Presentation stopped</p>';
+            }
+        </script>
+        

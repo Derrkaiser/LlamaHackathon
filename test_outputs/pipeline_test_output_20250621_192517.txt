@@ -1,0 +1,302 @@
+================================================================================
+LLAMA HACKATHON DEMO GENERATOR - COMPLETE PIPELINE TEST
+================================================================================
+
+Test Date: 2025-06-21 19:25:17
+GitHub Repo: https://github.com/cyclotruc/gitingest
+PDF Document: Calculator_Requirements_Doc.pdf
+Demo Duration: 7 minutes
+Audience: Mixed Technical & Business
+Purpose: Technical Deep Dive
+Focus Areas: Backend Architecture, API Integration, User Interface & UX, Security Features
+
+==================================================
+1. CODEBASE ANALYSIS
+==================================================
+Architecture: The application is built using Python as the primary programming language. It utilizes a microservices architecture with a CLI tool and a Python package for ingestion. The application also includes a server component built using a Python web framework (likely FastAPI given the presence of routers and server configuration). The tech stack includes Docker for containerization and GitHub Actions for CI/CD.
+Main Features: Code ingestion from Git repositories or local directories, Smart formatting for LLM prompts, Statistics generation about file structure, size, and token count, Browser extension support for Chrome, Firefox, and Edge
+Dependencies: Python 3.8+, GitHub Personal Access Token (PAT) for private repositories, Docker for containerization, pipx for package management
+Key Components: gitingest CLI tool, gitingest Python package, Server component for handling queries and serving content, Browser extensions for Chrome, Firefox, and Edge
+User Flows: Users can ingest code from public or private Git repositories using the CLI tool or Python package, Users can access ingested content through the server component or browser extensions, Users can customize output formats and options using various command-line flags or configuration options
+
+==================================================
+2. REQUIREMENTS ANALYSIS
+==================================================
+Document: Calculator_Requirements_Doc.pdf
+Total Requirements: 5
+Summary: Document contains 5 requirement tickets: - High priority: 4 - Medium priority: 1 - Low priority: 0 - Total features: 0
+
+Requirements Details:
+
+Requirement 1:
+  Title: Calculator Display Component Priority: High Description: Provide a single, always-visible display panel that shows the current input and/or result. The panel must resize gracefully across devices while maintaining readability. Features: • Numeric output up to 12 digits (defaults to scientific notation beyond) • Distinct style for “in-progress” expression vs. final result • Auto-scroll or shrink font when length exceeds display width • Read-only interaction (no manual typing into display) Acceptance Criteria: • Input “12 + 7 =” renders 19 in large font • Long operations (e.g., 123456789 * 99999) wrap or shrink without overflowing container • Display resets to “0” after “AC” is pressed Technical Notes: Use a dedicated <Display /> React component that accepts a value prop. Implement dynamic font sizing with CSS clamp() or calc() and test at 320 px width.
+  Priority: High
+  Description: REQUIREMENT 1:...
+  Features: 
+  Acceptance Criteria: 
+
+Requirement 2:
+  Title: Numeric & Operator Buttons Priority: High Description: Create a grid of tactile buttons for digits 0–9, decimal point, arithmetic operators, equals, and clear actions. Features: • Distinct visual grouping: digits vs. operators • Hover/focus states for accessibility • Data-test attributes for automated demo scripts (e.g., data-test= “btn-5”) • Ripple or press animation under 100 ms Acceptance Criteria: • Clicking 9, +, 1, = updates display to 10 • “×” and “÷” use multiplication and division logic (no Unicode errors) • All buttons are reachable via Tab key in logical order Technical Notes: Implement each button as a reusable <CalcButton /> component with props for label, value, and onClick.
+  Priority: High
+  Description: REQUIREMENT 2:...
+  Features: 
+  Acceptance Criteria: 
+
+Requirement 3:
+  Title: Arithmetic Computation Engine Priority: High Description: Handle addition, subtraction, multiplication, and division without using JavaScript’s eval(). Features: • Support operation chaining (e.g., 2 + 3 x 4 = 14) • Respect operator precedence (× / higher than + –) • Floating-point precision up to 6 decimal places • Graceful handling of division by zero Acceptance Criteria: • 7 x 3 - 2 = 19 • 5 / 0 shows Error and disables = until reset • Results are rounded: 0.1 + 0.2 = 0.3 (not 0.3000000004) Technical Notes: Use an infix-to-RPN converter or incremental evaluation stack. Write unit tests for >20 edge cases with Jest.
+  Priority: High
+  Description: REQUIREMENT 3:...
+  Features: 
+  Acceptance Criteria: 
+
+Requirement 4:
+  Title: Clear & All-Clear Functionality Priority: Medium Description: Provide two reset actions—C (Clear Last Entry) and AC (All Clear). Features: • “C” removes the most recent token (digit / operator) • “AC” resets full calculator state to default “0” • Button labels adapt on small screens: “C” & “AC” → icons Acceptance Criteria: • Enter 8 8 + then press “C” → only last + is cleared • Press “AC” at any point and display shows “0”; history is empty Technical Notes: Maintain history stack; pop last token on “C”. Ensure long-press on “C” triggers “AC” on touch devices.
+  Priority: Medium
+  Description: REQUIREMENT 4:...
+  Features: 
+  Acceptance Criteria: 
+
+Requirement 5:
+  Title: Decimal & Negative Number Support Priority: High Description: Allow users to enter numbers with decimals and toggle sign. Features: • Single decimal point per number (auto-ignore extras) • “±” toggle flips sign of current entry or result • Input validation prevents “. .” or “--5” edge cases Acceptance Criteria: • 3.14 +- shows -3.14 • 0..5 registers as 0.5 • Consecutive “±” presses alternate sign each time Technical Notes: Use regex or FSM for input parsing; store numbers as strings until evaluation to avoid JS float quirks.
+  Priority: High
+  Description: REQUIREMENT 5:...
+  Features: 
+  Acceptance Criteria: 
+
+==================================================
+3. HOLISTIC CONTEXT (Sent to Llama)
+==================================================
+
+        === BUSINESS REQUIREMENTS ===
+        Document: Calculator_Requirements_Doc.pdf
+        Summary: Document contains 5 requirement tickets: - High priority: 4 - Medium priority: 1 - Low priority: 0 - Total features: 0
+        Total Requirements: 5
+        
+        Requirements Details:
+        [
+  {
+    "page_number": 1,
+    "title": "Calculator Display Component Priority: High Description: Provide a single, always-visible display panel that shows the current input and/or result. The panel must resize gracefully across devices while maintaining readability. Features: \u2022 Numeric output up to 12 digits (defaults to scientific notation beyond) \u2022 Distinct style for \u201cin-progress\u201d expression vs. final result \u2022 Auto-scroll or shrink font when length exceeds display width \u2022 Read-only interaction (no manual typing into display) Acceptance Criteria: \u2022 Input \u201c12 + 7 =\u201d renders 19 in large font \u2022 Long operations (e.g., 123456789 * 99999) wrap or shrink without overflowing container \u2022 Display resets to \u201c0\u201d after \u201cAC\u201d is pressed Technical Notes: Use a dedicated <Display /> React component that accepts a value prop. Implement dynamic font sizing with CSS clamp() or calc() and test at 320 px width.",
+    "description": "REQUIREMENT 1:",
+    "features": [],
+    "priority": "High",
+    "acceptance_criteria": [],
+    "technical_notes": "",
+    "raw_text": "REQUIREMENT 1: Calculator Display Component Priority: High Description: Provide a single, always-visible display panel that shows the current input and/or result. The panel must resize gracefully across devices while maintaining readability. Features: \u2022 Numeric output up to 12 digits (defaults to scientific notation beyond) \u2022 Distinct style for \u201cin-progress\u201d expression vs. final result \u2022 Auto-scroll or shrink font when length exceeds display width \u2022 Read-only interaction (no manual typing into display) Acceptance Criteria: \u2022 Input \u201c12 + 7 =\u201d renders 19 in large font \u2022 Long operations (e.g., 123456789 * 99999) wrap or shrink without overflowing container \u2022 Display resets to \u201c0\u201d after \u201cAC\u201d is pressed Technical Notes: Use a dedicated <Display /> React component that accepts a value prop. Implement dynamic font sizing with CSS clamp() or calc() and test at 320 px width."
+  },
+  {
+    "page_number": 2,
+    "title": "Numeric & Operator Buttons Priority: High Description: Create a grid of tactile buttons for digits 0\u20139, decimal point, arithmetic operators, equals, and clear actions. Features: \u2022 Distinct visual grouping: digits vs. operators \u2022 Hover/focus states for accessibility \u2022 Data-test attributes for automated demo scripts (e.g., data-test= \u201cbtn-5\u201d) \u2022 Ripple or press animation under 100 ms Acceptance Criteria: \u2022 Clicking 9, +, 1, = updates display to 10 \u2022 \u201c\u00d7\u201d and \u201c\u00f7\u201d use multiplication and division logic (no Unicode errors) \u2022 All buttons are reachable via Tab key in logical order Technical Notes: Implement each button as a reusable <CalcButton /> component with props for label, value, and onClick.",
+    "description": "REQUIREMENT 2:",
+    "features": [],
+    "priority": "High",
+    "acceptance_criteria": [],
+    "technical_notes": "",
+    "raw_text": "REQUIREMENT 2: Numeric & Operator Buttons Priority: High Description: Create a grid of tactile buttons for digits 0\u20139, decimal point, arithmetic operators, equals, and clear actions. Features: \u2022 Distinct visual grouping: digits vs. operators \u2022 Hover/focus states for accessibility \u2022 Data-test attributes for automated demo scripts (e.g., data-test= \u201cbtn-5\u201d) \u2022 Ripple or press animation under 100 ms Acceptance Criteria: \u2022 Clicking 9, +, 1, = updates display to 10 \u2022 \u201c\u00d7\u201d and \u201c\u00f7\u201d use multiplication and division logic (no Unicode errors) \u2022 All buttons are reachable via Tab key in logical order Technical Notes: Implement each button as a reusable <CalcButton /> component with props for label, value, and onClick."
+  },
+  {
+    "page_number": 3,
+    "title": "Arithmetic Computation Engine Priority: High Description: Handle addition, subtraction, multiplication, and division without using JavaScript\u2019s eval(). Features: \u2022 Support operation chaining (e.g., 2 + 3 x 4 = 14) \u2022 Respect operator precedence (\u00d7 / higher than + \u2013) \u2022 Floating-point precision up to 6 decimal places \u2022 Graceful handling of division by zero Acceptance Criteria: \u2022 7 x 3 - 2 = 19 \u2022 5 / 0 shows Error and disables = until reset \u2022 Results are rounded: 0.1 + 0.2 = 0.3 (not 0.3000000004) Technical Notes: Use an infix-to-RPN converter or incremental evaluation stack. Write unit tests for >20 edge cases with Jest.",
+    "description": "REQUIREMENT 3:",
+    "features": [],
+    "priority": "High",
+    "acceptance_criteria": [],
+    "technical_notes": "",
+    "raw_text": "REQUIREMENT 3: Arithmetic Computation Engine Priority: High Description: Handle addition, subtraction, multiplication, and division without using JavaScript\u2019s eval(). Features: \u2022 Support operation chaining (e.g., 2 + 3 x 4 = 14) \u2022 Respect operator precedence (\u00d7 / higher than + \u2013) \u2022 Floating-point precision up to 6 decimal places \u2022 Graceful handling of division by zero Acceptance Criteria: \u2022 7 x 3 - 2 = 19 \u2022 5 / 0 shows Error and disables = until reset \u2022 Results are rounded: 0.1 + 0.2 = 0.3 (not 0.3000000004) Technical Notes: Use an infix-to-RPN converter or incremental evaluation stack. Write unit tests for >20 edge cases with Jest."
+  },
+  {
+    "page_number": 4,
+    "title": "Clear & All-Clear Functionality Priority: Medium Description: Provide two reset actions\u2014C (Clear Last Entry) and AC (All Clear). Features: \u2022 \u201cC\u201d removes the most recent token (digit / operator) \u2022 \u201cAC\u201d resets full calculator state to default \u201c0\u201d \u2022 Button labels adapt on small screens: \u201cC\u201d & \u201cAC\u201d \u2192 icons Acceptance Criteria: \u2022 Enter 8 8 + then press \u201cC\u201d \u2192 only last + is cleared \u2022 Press \u201cAC\u201d at any point and display shows \u201c0\u201d; history is empty Technical Notes: Maintain history stack; pop last token on \u201cC\u201d. Ensure long-press on \u201cC\u201d triggers \u201cAC\u201d on touch devices.",
+    "description": "REQUIREMENT 4:",
+    "features": [],
+    "priority": "Medium",
+    "acceptance_criteria": [],
+    "technical_notes": "",
+    "raw_text": "REQUIREMENT 4: Clear & All-Clear Functionality Priority: Medium Description: Provide two reset actions\u2014C (Clear Last Entry) and AC (All Clear). Features: \u2022 \u201cC\u201d removes the most recent token (digit / operator) \u2022 \u201cAC\u201d resets full calculator state to default \u201c0\u201d \u2022 Button labels adapt on small screens: \u201cC\u201d & \u201cAC\u201d \u2192 icons Acceptance Criteria: \u2022 Enter 8 8 + then press \u201cC\u201d \u2192 only last + is cleared \u2022 Press \u201cAC\u201d at any point and display shows \u201c0\u201d; history is empty Technical Notes: Maintain history stack; pop last token on \u201cC\u201d. Ensure long-press on \u201cC\u201d triggers \u201cAC\u201d on touch devices."
+  },
+  {
+    "page_number": 5,
+    "title": "Decimal & Negative Number Support Priority: High Description: Allow users to enter numbers with decimals and toggle sign. Features: \u2022 Single decimal point per number (auto-ignore extras) \u2022 \u201c\u00b1\u201d toggle flips sign of current entry or result \u2022 Input validation prevents \u201c. .\u201d or \u201c--5\u201d edge cases Acceptance Criteria: \u2022 3.14 +- shows -3.14 \u2022 0..5 registers as 0.5 \u2022 Consecutive \u201c\u00b1\u201d presses alternate sign each time Technical Notes: Use regex or FSM for input parsing; store numbers as strings until evaluation to avoid JS float quirks.",
+    "description": "REQUIREMENT 5:",
+    "features": [],
+    "priority": "High",
+    "acceptance_criteria": [],
+    "technical_notes": "",
+    "raw_text": "REQUIREMENT 5: Decimal & Negative Number Support Priority: High Description: Allow users to enter numbers with decimals and toggle sign. Features: \u2022 Single decimal point per number (auto-ignore extras) \u2022 \u201c\u00b1\u201d toggle flips sign of current entry or result \u2022 Input validation prevents \u201c. .\u201d or \u201c--5\u201d edge cases Acceptance Criteria: \u2022 3.14 +- shows -3.14 \u2022 0..5 registers as 0.5 \u2022 Consecutive \u201c\u00b1\u201d presses alternate sign each time Technical Notes: Use regex or FSM for input parsing; store numbers as strings until evaluation to avoid JS float quirks."
+  }
+]
+        
+        === TECHNICAL IMPLEMENTATION ===
+        Architecture: The application is built using Python as the primary programming language. It utilizes a microservices architecture with a CLI tool and a Python package for ingestion. The application also includes a server component built using a Python web framework (likely FastAPI given the presence of routers and server configuration). The tech stack includes Docker for containerization and GitHub Actions for CI/CD.
+        Main Features: Code ingestion from Git repositories or local directories, Smart formatting for LLM prompts, Statistics generation about file structure, size, and token count, Browser extension support for Chrome, Firefox, and Edge
+        Dependencies: Python 3.8+, GitHub Personal Access Token (PAT) for private repositories, Docker for containerization, pipx for package management
+        Key Components: gitingest CLI tool, gitingest Python package, Server component for handling queries and serving content, Browser extensions for Chrome, Firefox, and Edge
+        User Flows: Users can ingest code from public or private Git repositories using the CLI tool or Python package, Users can access ingested content through the server component or browser extensions, Users can customize output formats and options using various command-line flags or configuration options
+        
+        === PRESENTATION PREFERENCES ===
+        Audience: Mixed Technical & Business
+        Purpose: Technical Deep Dive
+        Duration: 7 minutes
+        Focus Areas: Backend Architecture, API Integration, User Interface & UX, Security Features
+        
+        === INTEGRATION CONTEXT ===
+        This analysis combines business requirements from the document with technical implementation from the codebase.
+        The presentation should demonstrate how the technical solution addresses the business needs.
+        
+
+==================================================
+4. GENERATED PRESENTATION SCRIPT
+==================================================
+Total Duration: 300 seconds
+
+Section 1: Generated Presentation
+Duration: 0 seconds
+Content:
+```json
+{
+  "presentation_script": {
+    "sections": [
+      {
+        "title": "Executive Summary",
+        "duration": 30,
+        "content": "Introducing our calculator application, built to meet the business requirements outlined in the Calculator_Requirements_Doc.pdf. Our solution addresses key needs: display component, numeric & operator buttons, arithmetic computation engine, clear & all-clear functionality, and decimal & negative number support.",
+        "demo_steps": []
+      },
+      {
+        "title": "Problem Statement",
+        "duration": 60,
+        "content": "The business requirements document outlines the need for a robust calculator application with specific features and functionalities. Our task is to demonstrate how our technical implementation meets these requirements.",
+        "demo_steps": []
+      },
+      {
+        "title": "Solution Overview",
+        "duration": 120,
+        "content": "Our calculator application is built using a microservices architecture with Python as the primary programming language. It includes a CLI tool, Python package for ingestion, and a server component. We've implemented key features such as a display component, numeric & operator buttons, arithmetic computation engine, and more.",
+        "demo_steps": []
+      },
+      {
+        "title": "Live Demo Script",
+        "duration": 300,
+        "content": "Let's demonstrate the calculator application in action. We'll perform the following steps: 1. Open the calculator application. 2. Perform a simple arithmetic operation (e.g., 2 + 3 =). 3. Demonstrate the clear and all-clear functionality. 4. Show decimal and negative number support.",
+        "demo_steps": [
+          "Open the calculator application in the browser",
+          "Click on button '2', '+', '3', '=' and verify the result is '5'",
+          "Click on 'C' and verify the last operator is cleared",
+          "Click on 'AC' and verify the display resets to '0'",
+          "Enter '3.14', '±' and verify the result is '-3.14'",
+          "Enter '0..5' and verify it registers as '0.5'"
+        ]
+      },
+      {
+        "title": "Technical Deep Dive",
+        "duration": 120,
+        "content": "Our technical implementation includes a dedicated <Display /> React component for the display panel, a reusable <CalcButton /> component for numeric & operator buttons, and an arithmetic computation engine that handles addition, subtraction, multiplication, and division without using JavaScript's eval().",
+        "demo_steps": []
+      },
+      {
+        "title": "Q&A Preparation",
+        "duration": 60,
+        "content": "We've prepared for potential questions regarding our technical implementation, including how we handled edge cases, implemented security features, and ensured scalability.",
+        "demo_steps": []
+      }
+    ],
+    "total_duration": 420
+  },
+  "demo_plan": {
+    "scenarios": [
+      "Simple arithmetic operation (e.g., 2 + 3 =)",
+      "Clear and all-clear functionality demonstration",
+      "Decimal and negative number support showcase"
+    ],
+    "automation_steps": [
+      "Click on button '2', '+', '3', '='",
+      "Verify the result is '5'",
+      "Click on 'C' and verify the last operator is cleared",
+      "Click on 'AC' and verify the display resets to '0'",
+      "Enter '3.14', '±' and verify the result is '-3.14'",
+      "Enter '0..5' and verify it registers as '0.5'"
+    ],
+    "fallback_plans": [
+      "If the demo fails, provide a pre-recorded video showcasing the calculator application",
+      "If the browser automation fails, manually perform the demo steps"
+    ]
+  },
+  "key_insights": [
+    "Our technical implementation meets the business requirements outlined in the Calculator_Requirements_Doc.pdf",
+    "The calculator application is built using a microservices architecture with Python as the primary programming language",
+    "We've implemented key features such as a display component, numeric & operator buttons, arithmetic computation engine, and more"
+  ],
+  "qa_preparation": [
+    {
+      "question": "How did you handle edge cases in the arithmetic computation engine?",
+      "answer": "We implemented unit tests for >20 edge cases using Jest and handled division by zero by displaying 'Error' and disabling '=' until reset."
+    },
+    {
+      "question": "What security features have you implemented in the calculator application?",
+      "answer": "We've ensured that the application doesn't use JavaScript's eval() function, which improves security by preventing code injection attacks."
+    },
+    {
+      "question": "How did you ensure scalability in your technical implementation?",
+      "answer": "We used a microservices architecture, which allows for individual components to be scaled as needed. We also implemented a reusable <CalcButton /> component for numeric & operator buttons."
+    }
+  ]
+}
+```
+
+------------------------------
+
+
+==================================================
+5. AGENT EXECUTION PLAN
+==================================================
+{
+  "agents_required": [
+    "Browser Agent",
+    "Avatar Agent"
+  ],
+  "demo_scenarios": [
+    "Demo scenario"
+  ],
+  "automation_sequence": [
+    "Automation steps"
+  ],
+  "timing_coordination": [
+    "Timing coordination"
+  ],
+  "error_handling": [
+    "Error handling"
+  ]
+}
+
+==================================================
+6. ANALYSIS SUMMARY
+==================================================
+{
+  "requirements_count": 5,
+  "features_count": 4,
+  "complexity": "Medium",
+  "risk_level": "Low",
+  "summary": "Analysis complete: 4 features, 5 requirements",
+  "presentation_duration": 300
+}
+
+==================================================
+7. VALIDATION NOTES
+==================================================
+✅ What to check:
+1. Does the presentation follow the 6-section structure?
+2. Are demo steps specific and actionable?
+3. Does it adapt to the specified audience and duration?
+4. Are technical and business aspects balanced?
+5. Does the agent execution plan include automation steps?
+6. Is the content relevant to both codebase and requirements?
+7. Are timing constraints respected?
+8. Does it highlight innovation and hackathon appeal?
+
+🎯 Expected Quality Indicators:
+- Clear narrative flow from problem to solution
+- Specific demo instructions with UI selectors
+- Balanced technical and business content
+- Engaging and professional tone
+- Hackathon-appropriate innovation focus
+- Automation-ready demo steps

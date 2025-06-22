@@ -7,7 +7,7 @@ import shutil
 
 # Page configuration
 st.set_page_config(
-    page_title="Llama Hackathon Demo Generator",
+    page_title="DemoAM",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -91,7 +91,7 @@ st.markdown("""
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🚀 Llama Hackathon Demo Generator</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">DemoAM</h1>', unsafe_allow_html=True)
     
     # Info box
     st.markdown("""
@@ -327,80 +327,177 @@ def main():
             st.error("Please provide your Llama API key.")
             return
         
-        # Show processing
-        with st.spinner("🤖 Analyzing your project and generating presentation..."):
-            try:
-                # Import and use the integration
-                from ui_integration import process_demo_request
+        # Show processing with detailed progress
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        try:
+            # Step 1: Initialize
+            status_text.text("🔧 Initializing processing pipeline...")
+            progress_bar.progress(10)
+            
+            # Step 2: GitHub Analysis (if provided)
+            if github_url:
+                status_text.text(f"🔍 Analyzing GitHub repository: {github_url}")
+                progress_bar.progress(20)
+            
+            # Step 3: PDF Processing (if provided)
+            if uploaded_file or pdf_path:
+                status_text.text("📄 Parsing requirements document...")
+                progress_bar.progress(40)
+            
+            # Step 4: Context Building
+            status_text.text("🧠 Building comprehensive context...")
+            progress_bar.progress(60)
+            
+            # Step 5: Llama Processing
+            status_text.text("🤖 Generating presentation with Llama 4 Maverick...")
+            progress_bar.progress(80)
+            
+            # Import and use the integration
+            from ui_integration import process_demo_request
+            
+            # Prepare inputs
+            ui_inputs = {
+                "github_url": github_url,
+                "uploaded_file": uploaded_file,
+                "pdf_path": pdf_path,
+                "demo_duration": demo_duration,
+                "audience_type": audience_type,
+                "custom_audience": custom_audience,
+                "demo_purpose": demo_purpose,
+                "custom_purpose": custom_purpose,
+                "focus_areas": focus_areas,
+                "custom_focus": custom_focus,
+                "llama_api_key": llama_api_key,
+                "demo_url": demo_url,
+                "include_code_analysis": include_code_analysis,
+                "include_risk_assessment": include_risk_assessment
+            }
+            
+            # Process the request
+            result = asyncio.run(process_demo_request(ui_inputs))
+            
+            # Complete
+            status_text.text("✅ Analysis complete!")
+            progress_bar.progress(100)
+            
+            st.success("🎉 Presentation script and demo plan generated successfully!")
+            
+            # Show results in tabs
+            tab1, tab2, tab3, tab4 = st.tabs(["📝 Presentation Script", "🎬 Demo Plan", "📊 Analysis Summary", "🔍 Raw Context"])
+            
+            with tab1:
+                st.markdown("### Generated Presentation Script")
+                if isinstance(result["presentation_script"], dict):
+                    # If it's a structured response, show the content
+                    if "presentation_script" in result["presentation_script"]:
+                        script = result["presentation_script"]["presentation_script"]
+                        if "sections" in script:
+                            for i, section in enumerate(script["sections"], 1):
+                                with st.expander(f"Section {i}: {section.get('title', 'Untitled')} ({section.get('duration', 0)}s)", expanded=i==1):
+                                    st.markdown(section.get('content', 'No content'))
+                                    if section.get('demo_steps'):
+                                        st.markdown("**Demo Steps:**")
+                                        for step in section['demo_steps']:
+                                            st.markdown(f"- {step}")
+                        else:
+                            st.json(script)
+                    else:
+                        st.json(result["presentation_script"])
+                else:
+                    # If it's a string response, show as code
+                    st.code(result["presentation_script"])
                 
-                # Prepare inputs
-                ui_inputs = {
-                    "github_url": github_url,
-                    "uploaded_file": uploaded_file,
-                    "pdf_path": pdf_path,
-                    "demo_duration": demo_duration,
-                    "audience_type": audience_type,
-                    "custom_audience": custom_audience,
-                    "demo_purpose": demo_purpose,
-                    "custom_purpose": custom_purpose,
-                    "focus_areas": focus_areas,
-                    "custom_focus": custom_focus,
-                    "llama_api_key": llama_api_key,
-                    "demo_url": demo_url,
-                    "include_code_analysis": include_code_analysis,
-                    "include_risk_assessment": include_risk_assessment
+                # Download button for presentation script
+                if st.button("📥 Download Presentation Script"):
+                    import json
+                    script_json = json.dumps(result["presentation_script"], indent=2)
+                    st.download_button(
+                        label="Download JSON",
+                        data=script_json,
+                        file_name="presentation_script.json",
+                        mime="application/json"
+                    )
+            
+            with tab2:
+                st.markdown("### Demo Execution Plan")
+                st.json(result["agent_execution_plan"])
+                
+                # Download button for demo plan
+                if st.button("📥 Download Demo Plan"):
+                    import json
+                    plan_json = json.dumps(result["agent_execution_plan"], indent=2)
+                    st.download_button(
+                        label="Download JSON",
+                        data=plan_json,
+                        file_name="demo_plan.json",
+                        mime="application/json"
+                    )
+            
+            with tab3:
+                st.markdown("### Analysis Summary")
+                col_summary1, col_summary2 = st.columns(2)
+                
+                with col_summary1:
+                    st.metric("Requirements Found", result["analysis_summary"]["requirements_count"])
+                    st.metric("Key Features", result["analysis_summary"]["features_count"])
+                    st.metric("Demo Duration", f"{demo_duration} min")
+                
+                with col_summary2:
+                    st.metric("Code Complexity", result["analysis_summary"]["complexity"])
+                    st.metric("Risk Level", result["analysis_summary"]["risk_level"])
+                    st.metric("Presentation Duration", f"{result['analysis_summary'].get('presentation_duration', 0)}s")
+                
+                # Show detailed summary
+                st.markdown("### Detailed Analysis")
+                st.text(result["analysis_summary"]["summary"])
+                
+                # Show codebase and document context
+                if "codebase_context" in result:
+                    st.markdown("### Codebase Context")
+                    st.json(result["codebase_context"])
+                
+                if "document_context" in result:
+                    st.markdown("### Document Context")
+                    st.json(result["document_context"])
+            
+            with tab4:
+                st.markdown("### Raw Processing Context")
+                st.markdown("This shows the raw context that was sent to Llama for processing.")
+                
+                # Show what was processed
+                context_info = {
+                    "GitHub URL": github_url or "None provided",
+                    "PDF Document": uploaded_file.name if uploaded_file else (pdf_path or "None provided"),
+                    "Audience": audience_type,
+                    "Purpose": demo_purpose,
+                    "Duration": f"{demo_duration} minutes",
+                    "Focus Areas": focus_areas,
+                    "Code Analysis": "Enabled" if include_code_analysis else "Disabled",
+                    "Risk Assessment": "Enabled" if include_risk_assessment else "Disabled"
                 }
                 
-                # Process the request
-                result = asyncio.run(process_demo_request(ui_inputs))
+                st.json(context_info)
                 
-                st.success("✅ Analysis complete! Presentation script and demo plan generated.")
-                
-                # Show results in tabs
-                tab1, tab2, tab3 = st.tabs(["📝 Presentation Script", "🎬 Demo Plan", "📊 Analysis Summary"])
-                
-                with tab1:
-                    st.markdown("### Generated Presentation Script")
-                    if isinstance(result["presentation_script"], dict):
-                        # If it's a structured response, show the content
-                        if "sections" in result["presentation_script"]:
-                            for section in result["presentation_script"]["sections"]:
-                                st.markdown(f"**{section.get('title', 'Section')}** ({section.get('duration', 0)}s)")
-                                st.text(section.get('content', 'No content'))
-                                st.markdown("---")
-                        else:
-                            st.json(result["presentation_script"])
-                    else:
-                        # If it's a string response, show as code
-                        st.code(result["presentation_script"])
-                
-                with tab2:
-                    st.markdown("### Demo Execution Plan")
-                    st.json(result["agent_execution_plan"])
-                
-                with tab3:
-                    st.markdown("### Analysis Summary")
-                    col_summary1, col_summary2 = st.columns(2)
-                    
-                    with col_summary1:
-                        st.metric("Requirements Found", result["analysis_summary"]["requirements_count"])
-                        st.metric("Key Features", result["analysis_summary"]["features_count"])
-                        st.metric("Demo Duration", f"{demo_duration} min")
-                    
-                    with col_summary2:
-                        st.metric("Code Complexity", result["analysis_summary"]["complexity"])
-                        st.metric("Risk Level", result["analysis_summary"]["risk_level"])
-                        st.metric("Visual Assets", "3")
-                    
-                    # Show detailed summary
-                    st.markdown("### Detailed Analysis")
-                    st.text(result["analysis_summary"]["summary"])
-                
-            except Exception as e:
-                st.error(f"❌ Processing failed: {str(e)}")
-                st.info("💡 Make sure your Llama API key is correct and you have sufficient credits.")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"❌ Processing failed: {str(e)}")
+            st.info("💡 Troubleshooting tips:")
+            st.markdown("""
+            - Make sure your Llama API key is correct and has sufficient credits
+            - Check that the GitHub URL is valid and accessible
+            - Ensure the PDF file is not corrupted and is readable
+            - Try reducing the demo duration or focus areas if the request is too complex
+            """)
+            
+            # Show detailed error for debugging
+            with st.expander("🔍 Debug Information"):
+                st.code(str(e))
+        
+        finally:
+            # Clear progress indicators
+            progress_bar.empty()
+            status_text.empty()
     
     # Footer
     st.markdown("---")

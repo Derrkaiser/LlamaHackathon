@@ -5,6 +5,7 @@ nest-asyncio
 llama-api-client
 playwright
 pytest
+gitingest
 
 # Core dependencies
 fastapi==0.104.1
