@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 import tempfile
 import shutil
+import time
 
 # Page configuration
 st.set_page_config(
@@ -137,10 +138,11 @@ def main():
             # Demo Duration
             demo_duration = st.selectbox(
                 "Demo Duration",
-                options=[3, 5, 7, 10, 15],
-                index=1,  # Default to 5 minutes
-                help="Select the desired duration for your demo presentation"
+                options=[1],
+                index=0,  # Default to 1 minute to conserve Tavus credits
+                help="Set to 1 minute to conserve Tavus API credits"
             )
+            st.info("⚠️ Limited to 1 minute to conserve Tavus API credits")
         
         with col2:
             st.markdown('<h3 class="sub-header">🎭 Presentation Details</h3>', unsafe_allow_html=True)
@@ -378,6 +380,36 @@ def main():
             # Process the request
             result = asyncio.run(process_demo_request(ui_inputs))
             
+            # Store avatar video URL in session state for persistence
+            if result.get("avatar_video_url"):
+                # Initialize video history if it doesn't exist
+                if 'avatar_video_history' not in st.session_state:
+                    st.session_state.avatar_video_history = []
+                
+                # Add new video to history
+                new_video = {
+                    "url": result.get("avatar_video_url", ""),
+                    "status": result.get("avatar_status", "unknown"),
+                    "presentation_id": result.get("avatar_presentation_id", ""),
+                    "timestamp": "Just generated",
+                    "script_preview": result.get("presentation_script", "")[:200] + "..." if len(result.get("presentation_script", "")) > 200 else result.get("presentation_script", ""),
+                    "needs_status_check": True  # Flag to check status later
+                }
+                
+                st.session_state.avatar_video_history.append(new_video)
+                
+                # Keep only last 5 videos
+                if len(st.session_state.avatar_video_history) > 5:
+                    st.session_state.avatar_video_history = st.session_state.avatar_video_history[-5:]
+                
+                # Set current video as the latest
+                st.session_state.avatar_video_url = result.get("avatar_video_url")
+                st.session_state.avatar_status = result.get("avatar_status", "unknown")
+                st.session_state.avatar_presentation_id = result.get("avatar_presentation_id", "")
+            
+            # Store demo results in session state for persistence
+            st.session_state.demo_results = result
+            
             # Complete
             status_text.text("✅ Analysis complete!")
             progress_bar.progress(100)
@@ -385,7 +417,7 @@ def main():
             st.success("🎉 Presentation script and demo plan generated successfully!")
             
             # Show results in tabs
-            tab1, tab2, tab3, tab4 = st.tabs(["📝 Presentation Script", "🎬 Demo Plan", "📊 Analysis Summary", "🔍 Raw Context"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Presentation Script", "🎬 Demo Plan", "📊 Analysis Summary", "🔍 Raw Context", "🎭 Live Tavus Avatar"])
             
             with tab1:
                 st.markdown("### Generated Presentation Script")
@@ -480,6 +512,184 @@ def main():
                 
                 st.json(context_info)
                 
+            with tab5:
+                st.markdown("### 🎭 Live Tavus Avatar Presentation")
+                
+                # Status checking function
+                def check_video_status():
+                    """Check status of videos that need updating"""
+                    if 'avatar_video_history' in st.session_state:
+                        for video in st.session_state.avatar_video_history:
+                            if video.get('needs_status_check') and video.get('presentation_id'):
+                                try:
+                                    # Import Tavus client to check status
+                                    from src.core.tavus_client import TavusClient
+                                    tavus_client = TavusClient()
+                                    status_data = tavus_client.get_video_status(video['presentation_id'])
+                                    
+                                    if status_data.get('status') == 'ready':
+                                        video['status'] = 'completed'
+                                        video['needs_status_check'] = False
+                                        video['url'] = status_data.get('hosted_url', video.get('url', ''))
+                                        st.success(f"✅ Video {video['presentation_id']} is ready!")
+                                    elif status_data.get('status') in ['queued', 'generating']:
+                                        video['status'] = status_data.get('status')
+                                        st.info(f"⏳ Video {video['presentation_id']} is still processing...")
+                                    else:
+                                        video['status'] = status_data.get('status', 'unknown')
+                                        video['needs_status_check'] = False
+                                except Exception as e:
+                                    st.warning(f"Could not check status for video {video['presentation_id']}: {str(e)}")
+                
+                # Check for videos that need status updates
+                if st.button("🔄 Check All Video Status"):
+                    check_video_status()
+                    st.rerun()
+                
+                # Check if we have video history
+                video_history = st.session_state.get("avatar_video_history", [])
+                
+                if video_history:
+                    st.success(f"✅ Found {len(video_history)} generated videos!")
+                    
+                    # Video selector
+                    if len(video_history) > 1:
+                        st.subheader("📺 Select Video to View")
+                        video_options = [f"Video {i+1}: {video.get('presentation_id', 'Unknown')} - {video.get('timestamp', 'Unknown')}" for i, video in enumerate(video_history)]
+                        selected_video_index = st.selectbox("Choose a video:", range(len(video_history)), format_func=lambda x: video_options[x])
+                        selected_video = video_history[selected_video_index]
+                    else:
+                        selected_video = video_history[0]
+                    
+                    # Display selected video
+                    st.subheader(f"🎬 Video: {selected_video.get('presentation_id', 'Unknown')}")
+                    
+                    # Show video info
+                    col_info1, col_info2, col_info3 = st.columns(3)
+                    with col_info1:
+                        st.metric("Presentation ID", selected_video.get('presentation_id', 'N/A'))
+                    with col_info2:
+                        st.metric("Status", selected_video.get('status', 'Unknown'))
+                    with col_info3:
+                        st.metric("Video Ready", "✅ Yes")
+                    
+                    # Display the video
+                    st.markdown("### 🎬 Your Avatar Presentation")
+                    
+                    # Show direct links
+                    st.markdown("### 🔗 Direct Links")
+                    col_link1, col_link2, col_link3 = st.columns(3)
+                    
+                    with col_link1:
+                        st.link_button("🔗 Open in Tavus", selected_video.get('url', ''))
+                    
+                    with col_link2:
+                        presentation_id = selected_video.get('presentation_id', '')
+                        if presentation_id:
+                            st.link_button("👁️ View in App", f"https://app.tavus.com/video/{presentation_id}")
+                    
+                    with col_link3:
+                        st.link_button("📺 Embed URL", f"https://app.tavus.com/embed/{presentation_id}")
+                    
+                    # Show script preview
+                    with st.expander("📝 Script Preview"):
+                        script_preview = selected_video.get('script_preview', 'No preview available')
+                        st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+                    
+                    # Show video history
+                    if len(video_history) > 1:
+                        with st.expander("📚 Video History"):
+                            st.markdown("### Previously Generated Videos")
+                            for i, video in enumerate(video_history):
+                                st.markdown(f"**Video {i+1}:** {video.get('presentation_id', 'Unknown')} - {video.get('timestamp', 'Unknown')}")
+                                st.markdown(f"   URL: {video.get('url', 'No URL')}")
+                                st.markdown("---")
+                
+                else:
+                    # Use session state if available, otherwise use current result
+                    avatar_status = st.session_state.get("avatar_status", result.get("avatar_status", "unknown"))
+                    avatar_video_url = st.session_state.get("avatar_video_url", result.get("avatar_video_url", ""))
+                    avatar_presentation_id = st.session_state.get("avatar_presentation_id", result.get("avatar_presentation_id", ""))
+                    
+                    if avatar_status == "completed" and avatar_video_url:
+                        st.success("✅ Tavus avatar created successfully!")
+                        
+                        # Show avatar info
+                        col_info1, col_info2, col_info3 = st.columns(3)
+                        with col_info1:
+                            st.metric("Presentation ID", avatar_presentation_id or "N/A")
+                        with col_info2:
+                            st.metric("Status", avatar_status)
+                        with col_info3:
+                            st.metric("Video Ready", "✅ Yes")
+                        
+                        # Display the video
+                        st.markdown("### 🎬 Your Avatar Presentation")
+                        
+                        # Show direct links
+                        st.markdown("### 🔗 Direct Links")
+                        col_link1, col_link2, col_link3 = st.columns(3)
+                        
+                        with col_link1:
+                            st.link_button("🔗 Open in Tavus", f"https://tavus.video/{avatar_presentation_id}")
+                        
+                        with col_link2:
+                            st.link_button("👁️ View in App", f"https://app.tavus.com/video/{avatar_presentation_id}")
+                        
+                        with col_link3:
+                            st.link_button("📺 Embed URL", f"https://app.tavus.com/embed/{avatar_presentation_id}")
+                        
+                        # Show script preview
+                        with st.expander("📝 Script Preview"):
+                            script_preview = result.get("presentation_script", "")[:500] + "..." if len(result.get("presentation_script", "")) > 500 else result.get("presentation_script", "")
+                            st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+                    
+                    elif avatar_status == "failed":
+                        st.error(f"❌ Avatar creation failed")
+                        st.info("💡 The script was generated successfully, but the avatar creation failed. You can still use the script for manual presentation.")
+                    
+                    else:
+                        st.info("🎭 Avatar presentation will appear here when demo is generated")
+                        
+                        # Show the existing calculator video
+                        st.subheader("🎬 Calculator App Demo")
+                        
+                        # Show direct links
+                        st.markdown("### 🔗 Direct Links")
+                        col_link1, col_link2, col_link3 = st.columns(3)
+                        
+                        with col_link1:
+                            st.link_button("🔗 Open in Tavus", "https://tavus.video/f6898a5b37")
+                        
+                        with col_link2:
+                            st.link_button("👁️ View in App", "https://app.tavus.com/video/f6898a5b37")
+                        
+                        with col_link3:
+                            st.link_button("📺 Embed URL", "https://app.tavus.com/embed/f6898a5b37")
+                        
+                        # Show script preview
+                        with st.expander("📝 Script Preview"):
+                            script_preview = "Calculator app presentation with microservices architecture, React frontend, Python backend, and key features including Calculator Display Component, Numeric & Operator Buttons, Arithmetic Computation Engine, and Clear & All-Clear Functionality."
+                            st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+                        
+                        # Show sample avatar info
+                        st.markdown("""
+                        ### 🎭 Tavus Avatar Features
+                        
+                        Your avatar will:
+                        - 📖 Read the generated script naturally with AI voice
+                        - ⏸️ Pause at appropriate moments for emphasis
+                        - 👋 Use realistic gestures and expressions
+                        - 🎯 Adapt tone and pace for your audience
+                        - ⏱️ Follow the timing you specified (1 minute)
+                        - 🎨 Use professional presentation styling
+                        
+                        **To see the avatar in action:**
+                        1. Generate a demo above with your GitHub repo and requirements
+                        2. Wait for the Tavus API to create your avatar
+                        3. The avatar will appear here automatically
+                        """)
+        
         except Exception as e:
             st.error(f"❌ Processing failed: {str(e)}")
             st.info("💡 Troubleshooting tips:")
@@ -506,6 +716,149 @@ def main():
         <p>Built with ❤️ for the Llama Hackathon | Powered by Llama 4 Maverick & Tavus</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Always show results tabs
+    st.markdown("---")
+    st.header("🎬 Demo Results")
+    
+    # Auto-refresh for video status using Streamlit's mechanism
+    if 'avatar_video_history' in st.session_state and st.session_state.avatar_video_history:
+        # Check if any videos are still processing
+        processing_videos = [v for v in st.session_state.avatar_video_history if v.get('status') in ['queued', 'generating']]
+        if processing_videos:
+            st.info("🔄 Videos are still processing... Refresh the page to check status")
+            # Add a refresh button
+            if st.button("🔄 Check Video Status"):
+                st.rerun()
+    
+    # Show results in tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Presentation Script", "🎬 Demo Plan", "📊 Analysis Summary", "🔍 Raw Context", "🎭 Live Tavus Avatar"])
+    
+    # Get results from session state or use empty defaults
+    result = st.session_state.get('demo_results', {})
+    
+    with tab1:
+        st.markdown("### Generated Presentation Script")
+        presentation_script = result.get("presentation_script", "No script generated yet")
+        if isinstance(presentation_script, str):
+            st.code(presentation_script)
+        else:
+            st.json(presentation_script)
+    
+    with tab2:
+        st.markdown("### Demo Execution Plan")
+        demo_plan = result.get("agent_execution_plan", {})
+        st.json(demo_plan)
+    
+    with tab3:
+        st.markdown("### Analysis Summary")
+        analysis_summary = result.get("analysis_summary", {})
+        if analysis_summary:
+            col_summary1, col_summary2 = st.columns(2)
+            with col_summary1:
+                st.metric("Requirements Found", analysis_summary.get("requirements_count", 0))
+                st.metric("Key Features", analysis_summary.get("features_count", 0))
+            with col_summary2:
+                st.metric("Code Complexity", analysis_summary.get("complexity", "Unknown"))
+                st.metric("Risk Level", analysis_summary.get("risk_level", "Unknown"))
+        else:
+            st.info("No analysis summary available")
+    
+    with tab4:
+        st.markdown("### Raw Processing Context")
+        st.info("Raw context will appear here after demo generation")
+    
+    with tab5:
+        st.markdown("### 🎭 Live Tavus Avatar Presentation")
+        
+        # Use session state for avatar data
+        avatar_status = st.session_state.get("avatar_status", "unknown")
+        avatar_video_url = st.session_state.get("avatar_video_url", "")
+        avatar_presentation_id = st.session_state.get("avatar_presentation_id", "")
+        
+        if avatar_status == "completed" and avatar_video_url:
+            st.success("✅ Tavus avatar created successfully!")
+            
+            # Show avatar info
+            col_info1, col_info2, col_info3 = st.columns(3)
+            with col_info1:
+                st.metric("Presentation ID", avatar_presentation_id or "N/A")
+            with col_info2:
+                st.metric("Status", avatar_status)
+            with col_info3:
+                st.metric("Video Ready", "✅ Yes")
+            
+            # Display the video
+            st.markdown("### 🎬 Your Avatar Presentation")
+            
+            # Show direct links
+            st.markdown("### 🔗 Direct Links")
+            col_link1, col_link2, col_link3 = st.columns(3)
+            
+            with col_link1:
+                st.link_button("🔗 Open in Tavus", f"https://tavus.video/{avatar_presentation_id}")
+            
+            with col_link2:
+                st.link_button("👁️ View in App", f"https://app.tavus.com/video/{avatar_presentation_id}")
+            
+            with col_link3:
+                st.link_button("📺 Embed URL", f"https://app.tavus.com/embed/{avatar_presentation_id}")
+            
+            # Show script preview
+            with st.expander("📝 Script Preview"):
+                script_preview = result.get("presentation_script", "")[:500] + "..." if len(result.get("presentation_script", "")) > 500 else result.get("presentation_script", "")
+                st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+        
+        elif avatar_status == "failed":
+            st.error(f"❌ Avatar creation failed")
+            st.info("💡 The script was generated successfully, but the avatar creation failed. You can still use the script for manual presentation.")
+        
+        else:
+            st.info("🎭 Avatar presentation will appear here when demo is generated")
+            
+            # Show the existing calculator video
+            st.subheader("🎬 Calculator App Demo")
+            
+            # Show direct links
+            st.markdown("### 🔗 Direct Links")
+            col_link1, col_link2, col_link3 = st.columns(3)
+            
+            with col_link1:
+                st.link_button("🔗 Open in Tavus", "https://tavus.video/f6898a5b37")
+            
+            with col_link2:
+                st.link_button("👁️ View in App", "https://app.tavus.com/video/f6898a5b37")
+            
+            with col_link3:
+                st.link_button("📺 Embed URL", "https://app.tavus.com/embed/f6898a5b37")
+            
+            # Show script preview
+            with st.expander("📝 Script Preview"):
+                script_preview = "Calculator app presentation with microservices architecture, React frontend, Python backend, and key features including Calculator Display Component, Numeric & Operator Buttons, Arithmetic Computation Engine, and Clear & All-Clear Functionality."
+                st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+            
+            # Show sample avatar info
+            st.markdown("""
+            ### 🎭 Tavus Avatar Features
+            
+            Your avatar will:
+            - 📖 Read the generated script naturally with AI voice
+            - ⏸️ Pause at appropriate moments for emphasis
+            - 👋 Use realistic gestures and expressions
+            - 🎯 Adapt tone and pace for your audience
+            - ⏱️ Follow the timing you specified (1 minute)
+            - 🎨 Use professional presentation styling
+            
+            **To see the avatar in action:**
+            1. Generate a demo above with your GitHub repo and requirements
+            2. Wait for the Tavus API to create your avatar
+            3. The avatar will appear here automatically
+            """)
+
+    # Demo settings
+    st.subheader("🎬 Demo Settings")
+    demo_duration = st.slider("Demo Duration (minutes)", 1, 1, 1)
+    st.info("⚠️ Limited to 1 minute to conserve Tavus API credits")
 
 if __name__ == "__main__":
     main() 

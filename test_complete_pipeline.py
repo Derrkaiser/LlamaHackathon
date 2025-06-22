@@ -30,7 +30,7 @@ async def test_complete_pipeline():
         "github_url": "https://github.com/cyclotruc/gitingest",
         "pdf_file_path": "Calculator_Requirements_Doc.pdf",
         "ui_preferences": {
-            "demo_duration": 7,  # 7 minutes
+            "demo_duration": 1,  # 1 minute to conserve Tavus credits
             "audience_type": "Mixed Technical & Business",
             "demo_purpose": "Technical Deep Dive",
             "focus_areas": [
@@ -212,7 +212,7 @@ async def test_multiple_scenarios():
             "name": "Technical Deep Dive",
             "github_url": "https://github.com/cyclotruc/gitingest",
             "ui_preferences": {
-                "demo_duration": 5,
+                "demo_duration": 1,
                 "audience_type": "Technical Developers",
                 "demo_purpose": "Technical Deep Dive",
                 "focus_areas": ["Backend Architecture", "API Integration"]
@@ -222,7 +222,7 @@ async def test_multiple_scenarios():
             "name": "Business Pitch",
             "github_url": "https://github.com/cyclotruc/gitingest",
             "ui_preferences": {
-                "demo_duration": 3,
+                "demo_duration": 1,
                 "audience_type": "Business Stakeholders",
                 "demo_purpose": "Investor Pitch",
                 "focus_areas": ["Business Value", "Market Potential"]

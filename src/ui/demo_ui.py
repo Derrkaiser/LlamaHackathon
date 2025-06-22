@@ -23,7 +23,7 @@ st.set_page_config(**STREAMLIT_CONFIG)
 def main():
     """Main Streamlit application"""
     
-    st.title("🚀 DemoAM - AI-Powered Demo Generator")
+    st.title("DemoAM - AI-Powered Demo Generator")
     st.markdown("Generate compelling presentations with Tavus avatar and natural pauses")
     
     # Sidebar for configuration
@@ -45,7 +45,8 @@ def main():
         
         # Demo settings
         st.subheader("🎬 Demo Settings")
-        demo_duration = st.slider("Demo Duration (minutes)", 3, 15, 5)
+        demo_duration = st.slider("Demo Duration (minutes)", 1, 1, 1)
+        st.info("⚠️ Limited to 1 minute to conserve Tavus API credits")
         
         # Advanced settings
         with st.expander("🔧 Advanced Settings"):
@@ -183,7 +184,7 @@ def main():
             "📝 Presentation Script", 
             "🤖 Demo Plan", 
             "🎭 Avatar Script", 
-            "🎬 Live Avatar"
+            "🎬 Live Tavus Avatar"
         ])
         
         results = st.session_state.demo_results
@@ -262,84 +263,77 @@ def main():
                 st.warning("No avatar script generated")
         
         with tab4:
-            st.subheader("🎭 Live Avatar Presentation")
+            st.subheader("🎭 Live Tavus Avatar Presentation")
             
-            if 'avatar_script' in results:
-                # Generate avatar presenter
-                avatar_presenter = SimpleAvatarPresenter()
-                avatar_presenter.load_script(
-                    results.get('presentation_script', ''),
-                    results.get('demo_plan', {})
-                )
+            avatar_script = results.get('avatar_script', {})
+            
+            if avatar_script and avatar_script.get('status') == 'completed':
+                # Display the real Tavus avatar
+                st.success("✅ Tavus avatar created successfully!")
                 
-                # Generate embed code
-                embed_code = avatar_presenter.generate_embed_code("demo_presentation_123")
+                # Show avatar info
+                col_info1, col_info2, col_info3 = st.columns(3)
+                with col_info1:
+                    st.metric("Presentation ID", avatar_script.get('presentation_id', 'N/A'))
+                with col_info2:
+                    st.metric("Status", avatar_script.get('status', 'Unknown'))
+                with col_info3:
+                    duration = avatar_script.get('duration', 0)
+                    st.metric("Duration", f"{duration:.1f}s" if duration else "N/A")
                 
-                # Display avatar player
-                st.components.v1.html(embed_code, height=600)
+                # Display the embed code
+                embed_code = avatar_script.get('embed_code', '')
+                if embed_code:
+                    st.components.v1.html(embed_code, height=700)
+                else:
+                    st.warning("No embed code available")
                 
-                # Presentation controls
-                col_controls, col_info = st.columns([1, 2])
+                # Show script preview
+                with st.expander("📝 Script Preview"):
+                    script_preview = avatar_script.get('script_preview', 'No preview available')
+                    st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
                 
-                with col_controls:
-                    if st.button("🎬 Start Presentation", type="primary"):
-                        st.session_state.start_presentation = True
-                    
-                    if st.button("⏸️ Pause"):
-                        st.session_state.pause_presentation = True
-                    
-                    if st.button("⏹️ Stop"):
-                        st.session_state.stop_presentation = True
+                # Download links
+                st.subheader("📥 Download Options")
+                col_dl1, col_dl2 = st.columns(2)
                 
-                with col_info:
-                    if st.session_state.get('start_presentation'):
-                        st.success("🎬 Presentation started!")
-                        
-                        # Show presentation progress
-                        summary = avatar_presenter.get_presentation_summary()
-                        
-                        st.metric("Current Segment", "1")
-                        st.metric("Total Segments", summary.get('segment_count', 0))
-                        st.metric("Remaining Time", f"{summary.get('total_duration', 0):.1f}s")
-                        
-                        # Show segments
-                        st.subheader("Presentation Segments")
-                        for segment in summary.get('segments', [])[:5]:  # Show first 5
-                            st.write(f"• {segment['text_preview']}")
-                            st.write(f"  Duration: {segment['duration']:.1f}s | Gesture: {segment['gesture']}")
+                with col_dl1:
+                    if avatar_script.get('embed_url'):
+                        st.link_button("🔗 Open in Tavus", avatar_script['embed_url'])
                 
-                # Presentation summary
-                st.subheader("📊 Presentation Summary")
-                summary = avatar_presenter.get_presentation_summary()
+                with col_dl2:
+                    if avatar_script.get('preview_url'):
+                        st.link_button("👁️ Preview URL", avatar_script['preview_url'])
                 
-                col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-                with col_s1:
-                    st.metric("Segments", summary.get('segment_count', 0))
-                with col_s2:
-                    st.metric("Total Duration", f"{summary.get('total_duration', 0):.1f}s")
-                with col_s3:
-                    st.metric("Avg Segment", f"{summary.get('average_segment_duration', 0):.1f}s")
-                with col_s4:
-                    st.metric("Natural Pauses", summary.get('pause_count', 0))
+            elif avatar_script and avatar_script.get('status') == 'failed':
+                st.error(f"❌ Avatar creation failed: {avatar_script.get('error', 'Unknown error')}")
+                
+                # Show script preview even if avatar failed
+                with st.expander("📝 Script Preview"):
+                    script_preview = avatar_script.get('script_preview', 'No preview available')
+                    st.text_area("Generated Script", value=script_preview, height=200, disabled=True)
+                
+                st.info("💡 The script was generated successfully, but the avatar creation failed. You can still use the script for manual presentation.")
                 
             else:
-                st.info("🎭 Avatar player will appear here when demo is generated")
+                st.info("🎭 Avatar presentation will appear here when demo is generated")
                 
-                # Show sample avatar
+                # Show sample avatar info
                 st.markdown("""
-                ### 🎭 Sample Avatar Presentation
+                ### 🎭 Tavus Avatar Features
                 
-                The avatar will:
-                - 📖 Read the generated script naturally
-                - ⏸️ Pause at appropriate moments
-                - 👋 Use gestures to emphasize points
-                - 🎯 Adapt tone for your audience
+                Your avatar will:
+                - 📖 Read the generated script naturally with AI voice
+                - ⏸️ Pause at appropriate moments for emphasis
+                - 👋 Use realistic gestures and expressions
+                - 🎯 Adapt tone and pace for your audience
                 - ⏱️ Follow the timing you specified
+                - 🎨 Use professional presentation styling
                 
                 **To see the avatar in action:**
-                1. Generate a demo above
-                2. Go to the "Live Avatar" tab
-                3. Click "Start Presentation"
+                1. Generate a demo above with your GitHub repo and requirements
+                2. Wait for the Tavus API to create your avatar
+                3. The avatar will appear here automatically
                 """)
 
 if __name__ == "__main__":

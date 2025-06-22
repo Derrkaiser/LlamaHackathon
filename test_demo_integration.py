@@ -29,7 +29,7 @@ async def test_complete_integration():
         "requirements_path": "sample_requirements.pdf",
         "audience": "Mixed Technical & Business",
         "purpose": "Feature Showcase",
-        "demo_duration": 5,
+        "demo_duration": 1,
         "demo_url": "https://demo.example.com"
     }
     

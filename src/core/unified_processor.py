@@ -13,7 +13,7 @@ from src.analysis.document_parser import DocumentParser
 from .github_analyzer import GitHubAnalyzer
 from .synthesis_engine import SynthesisEngine
 from .llama_client import LlamaClient, LlamaConfig
-from .simple_avatar_presenter import SimpleAvatarPresenter
+from .tavus_client import TavusClient
 from config import SYSTEM_PROMPT
 
 class UnifiedProcessor:
@@ -33,7 +33,9 @@ class UnifiedProcessor:
         
         # Initialize synthesis engine with llama client
         self.synthesis_engine = SynthesisEngine(self.llama_client)
-        self.avatar_presenter = SimpleAvatarPresenter()
+        
+        # Initialize Tavus client for avatar creation
+        self.tavus_client = TavusClient()
         
     async def process_demo_request(
         self,
@@ -42,7 +44,7 @@ class UnifiedProcessor:
         requirements_path: Optional[str] = None,
         audience: str = "Mixed Technical & Business",
         purpose: str = "Feature Showcase",
-        demo_duration: int = 5
+        demo_duration: int = 1
     ) -> Dict[str, Any]:
         """Process demo request and generate all content"""
         
@@ -66,7 +68,7 @@ class UnifiedProcessor:
         
         # Step 5: Generate avatar script
         avatar_script = self._generate_avatar_script(
-            presentation_script, demo_plan
+            presentation_script, demo_plan, audience, purpose
         )
         
         # Step 6: Compile results
@@ -266,20 +268,90 @@ class UnifiedProcessor:
     def _generate_avatar_script(
         self,
         presentation_script: str,
-        demo_plan: Dict[str, Any]
+        demo_plan: Dict[str, Any],
+        audience: str,
+        purpose: str
     ) -> Dict[str, Any]:
-        """Generate avatar script for Tavus"""
+        """Generate avatar script using real Tavus API"""
         
-        print("🎭 Generating avatar script...")
+        print("🎭 Creating Tavus avatar presentation...")
         
-        # Load script into avatar presenter
-        self.avatar_presenter.load_script(presentation_script, demo_plan)
+        try:
+            # Convert presentation script to plain text if it's JSON
+            if isinstance(presentation_script, str) and presentation_script.strip().startswith('{'):
+                # Parse JSON and extract text content
+                script_data = json.loads(presentation_script)
+                script_text = self._extract_text_from_script(script_data)
+            else:
+                script_text = presentation_script
+            
+            # Create avatar presentation using Tavus API
+            avatar_result = self.tavus_client.create_presentation_from_script(
+                script=script_text,
+                audience=audience,
+                purpose=purpose
+            )
+            
+            if avatar_result["status"] == "completed":
+                print(f"✅ Tavus avatar created successfully: {avatar_result['presentation_id']}")
+                
+                return {
+                    "presentation_id": avatar_result["presentation_id"],
+                    "status": "completed",
+                    "embed_url": avatar_result["embed_url"],
+                    "preview_url": avatar_result.get("preview_url"),
+                    "duration": avatar_result.get("duration"),
+                    "embed_code": avatar_result["embed_code"],
+                    "script_preview": script_text[:200] + "..." if len(script_text) > 200 else script_text
+                }
+            else:
+                print(f"❌ Tavus avatar creation failed: {avatar_result.get('error', 'Unknown error')}")
+                
+                return {
+                    "status": "failed",
+                    "error": avatar_result.get("error", "Avatar creation failed"),
+                    "script_preview": script_text[:200] + "..." if len(script_text) > 200 else script_text
+                }
+                
+        except Exception as e:
+            print(f"❌ Error creating Tavus avatar: {str(e)}")
+            
+            return {
+                "status": "error",
+                "error": str(e),
+                "script_preview": presentation_script[:200] + "..." if len(presentation_script) > 200 else presentation_script
+            }
+    
+    def _extract_text_from_script(self, script_data: Dict[str, Any]) -> str:
+        """Extract readable text from the structured script"""
         
-        # Generate avatar script
-        avatar_script = self.avatar_presenter.generate_avatar_script()
+        text_parts = []
         
-        print(f"🎭 Generated avatar script with {len(avatar_script['presentation']['segments'])} segments")
-        return avatar_script
+        # Add title
+        if "title" in script_data:
+            text_parts.append(f"Title: {script_data['title']}")
+        
+        # Add sections
+        if "sections" in script_data:
+            for section in script_data["sections"]:
+                if "title" in section:
+                    text_parts.append(f"\n{section['title']}:")
+                if "content" in section:
+                    text_parts.append(section["content"])
+        
+        # Add key points
+        if "key_points" in script_data and script_data["key_points"]:
+            text_parts.append("\nKey Points:")
+            for point in script_data["key_points"]:
+                text_parts.append(f"• {point}")
+        
+        # Add demo scenarios
+        if "demo_scenarios" in script_data and script_data["demo_scenarios"]:
+            text_parts.append("\nDemo Scenarios:")
+            for scenario in script_data["demo_scenarios"]:
+                text_parts.append(f"• {scenario}")
+        
+        return "\n".join(text_parts)
     
     def _prepare_llama_context(
         self,
@@ -363,7 +435,7 @@ if __name__ == "__main__":
         requirements_path="sample_requirements.pdf",
         audience="Mixed Technical & Business",
         purpose="Feature Showcase",
-        demo_duration=5
+        demo_duration=1
     )
     
     print("✅ Processing completed!")

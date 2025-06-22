@@ -26,7 +26,7 @@ def test_simple_avatar_integration():
         "requirements_path": "sample_requirements.pdf",
         "audience": "Mixed Technical & Business",
         "purpose": "Feature Showcase",
-        "demo_duration": 5
+        "demo_duration": 1
     }
     
     # Step 1: Test Unified Processor

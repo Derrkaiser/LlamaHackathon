@@ -41,7 +41,7 @@ async def process_demo_request(ui_inputs: Dict[str, Any]) -> Dict[str, Any]:
         
         # Create UI preferences dictionary
         ui_preferences = {
-            "demo_duration": ui_inputs.get("demo_duration", 5),
+            "demo_duration": ui_inputs.get("demo_duration", 1),
             "audience_type": ui_inputs.get("audience_type", "General"),
             "custom_audience": ui_inputs.get("custom_audience", ""),
             "demo_purpose": ui_inputs.get("demo_purpose", "Feature Showcase"),
@@ -62,13 +62,16 @@ async def process_demo_request(ui_inputs: Dict[str, Any]) -> Dict[str, Any]:
             requirements_path=pdf_path if pdf_path else None,
             audience=ui_preferences.get("audience_type", "Mixed Technical & Business"),
             purpose=ui_preferences.get("demo_purpose", "Feature Showcase"),
-            demo_duration=ui_preferences.get("demo_duration", 5)
+            demo_duration=ui_preferences.get("demo_duration", 1)
         )
         
         # Return results in the expected format
         return {
             "presentation_script": result.get("presentation_script", ""),
             "agent_execution_plan": result.get("demo_plan", {}),
+            "avatar_video_url": result.get("avatar_script", {}).get("embed_url", ""),
+            "avatar_status": result.get("avatar_script", {}).get("status", "unknown"),
+            "avatar_presentation_id": result.get("avatar_script", {}).get("presentation_id", ""),
             "analysis_summary": {
                 "requirements_count": result.get("requirements_summary", {}).get("count", 0),
                 "features_count": len(result.get("github_summary", {}).get("key_features", [])),
