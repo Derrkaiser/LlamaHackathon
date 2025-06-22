@@ -8,9 +8,14 @@ The key is understanding what gitingest returns and how to structure it for LLMs
 
 import asyncio
 from gitingest import ingest, ingest_async
-
-
+from datetime import datetime
+import cv2
+import numpy as np
+from PIL import ImageGrab
+import runpy
+import time
 from llama_chat_client import simple_chat as chat
+from web_agent import record_demo
 
 async def main(repo_url, output_file):
     print(f"📦 Running gitingest on: {repo_url}")
@@ -60,6 +65,7 @@ async def main(repo_url, output_file):
     - Different user workflows or scenarios
 
     Keep descriptions concise and action-focused. Each step should be clear enough that someone could automate it or follow it exactly.
+    The script should go over each main feature of the application only once
     """
     
     response = await chat(demo_prompt)
@@ -71,8 +77,21 @@ async def main(repo_url, output_file):
         f.write(response)
     print(f"💾 Demo script saved to: {demo_filename}")
 
+    # Convert demo to Playwright script
+    playwright_script = await convert_demo_to_playwright(demo_filename, summary, tree, content)
+    
+    # Get the output filename from convert_demo_to_playwright
+    playwright_filename = demo_filename.replace('.md', '_playwright.py')
+    
+    # # Play and record the demo
+    # print("🎥 Playing and recording demo...")
+    # await play_and_record_demo(playwright_filename)
 
-    await convert_demo_to_playwright(demo_filename, summary, tree, content)
+    await record_demo(response)
+
+
+    # Run the demo script
+    
 
 # Utility functions for different use cases
 async def ask_about_codebase(repo_path_or_url, question):
@@ -142,6 +161,8 @@ async def convert_demo_to_playwright(demo_file_path, repo_summary=None, repo_tre
     """
     
     response = await chat(playwright_conversion_prompt)
+
+    response = response.replace("```python", "").replace("```", "")
     
     # Save the converted script
     output_filename = demo_file_path.replace('.md', '_playwright.py')
@@ -151,9 +172,66 @@ async def convert_demo_to_playwright(demo_file_path, repo_summary=None, repo_tre
     print(f"🎭 Converted demo to Playwright script: {output_filename}")
     return response
 
-# async def generate_demo_script
-
+async def play_and_record_demo(demo_file_path):
+    """Play and record the demo created by convert_demo_to_playwright.
     
+    Args:
+        demo_file_path (str): Path to the Playwright demo script file
+    """
+    try:
+        # Initialize video writer
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = f"demo_recording_{timestamp}.mp4"
+        
+        # Take a test frame to get dimensions
+        screen = ImageGrab.grab()
+        frame = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
+        height, width = frame.shape[:2]
+        
+        # Initialize video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(output_path, fourcc, 30.0, (width, height))
+        
+        print("Starting demo execution and recording...")
+        
+        # Start recording in a separate task
+        recording = True
+        async def record_screen():
+            try:
+                while recording:
+                    # Capture and write frame
+                    screen = ImageGrab.grab()
+                    frame = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
+                    writer.write(frame)
+                    await asyncio.sleep(1/15)  # 30 FPS
+            except asyncio.CancelledError:
+                pass
+            
+        # Start recording task
+        recording_task = asyncio.create_task(record_screen())
+        
+        try:
+            # Add a small delay to ensure recording has started
+            await asyncio.sleep(0.5)
+            
+            # Just execute the file directly
+            print("Running demo script...")
+            await asyncio.to_thread(exec, open(demo_file_path).read(), {'__file__': demo_file_path})
+            
+            # Add a small delay to capture the final state
+            await asyncio.sleep(1)
+            
+            print("Demo completed successfully!")
+        finally:
+            # Stop recording
+            recording = False
+            await recording_task
+            writer.release()
+            print(f"Recording saved to {output_path}")
+            
+    except Exception as e:
+        print(f"Error playing demo: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     print("GitIngest + LLM Analysis Tool")

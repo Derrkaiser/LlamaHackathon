@@ -5,6 +5,10 @@ nest-asyncio
 llama-api-client
 playwright
 pytest
+autogen
+opencv-python
+pillow
+numpy
 gitingest
 
 # Core dependencies
