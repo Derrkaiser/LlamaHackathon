@@ -1,0 +1,8 @@
+openai
+mcp
+fastmcp
+nest-asyncio
+llama-api-client
+playwright
+pytest
+
